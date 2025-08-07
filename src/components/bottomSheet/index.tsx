@@ -152,7 +152,7 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
     const [currentSnapIndex, setCurrentSnapIndex] = useState(
       snapPoints && index !== undefined ? index : -1
     );
-    const [normalizedSnapPoints, setNormalizedSnapPoints] = useState<number[]>([]);
+    const [_normalizedSnapPoints, setNormalizedSnapPoints] = useState<number[]>([]);
 
     // animated properties
     const _animatedContainerHeight = useAnimatedValue(0);

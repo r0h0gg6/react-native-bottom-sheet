@@ -1,5 +1,13 @@
 {
-  "exclude": ["example", "src/__tests__"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "example",
+    "src/__tests__",
+    "commitlint.config.ts",
+    "**/*.d.ts",
+    "lib/**/*"
+  ],
   "compilerOptions": {
     "skipLibCheck": true,
     "jsx": "react",
@@ -8,6 +16,8 @@
     "esModuleInterop": true,
     "outDir": "./lib/typescript",
     "pretty": true,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "target": "ES2018",
+    "lib": ["ES2018"]
   }
 }
