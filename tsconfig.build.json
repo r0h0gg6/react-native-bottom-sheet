@@ -1,0 +1,13 @@
+{
+  "exclude": ["example", "src/__tests__"],
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "jsx": "react",
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "outDir": "./lib/typescript",
+    "pretty": true,
+    "emitDeclarationOnly": true
+  }
+}
