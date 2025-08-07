@@ -75,7 +75,10 @@
     "typescript": "^5.0.2"
   },
   "resolutions": {
-    "@types/react": "18.2.0"
+    "@types/react": "18.2.0",
+    "minimatch": "^5.1.6",
+    "glob": "^8.1.0",
+    "fast-glob": "^3.3.0"
   },
   "peerDependencies": {
     "react": "*",

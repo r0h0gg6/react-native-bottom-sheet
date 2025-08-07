@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@devvie/bottom-sheet": "^0.1.2",
+    "@r0h0gg6/bottom-sheet": "^0.1.1",
     "@types/react": "~18.2.14",
     "expo": "~49.0.11",
     "expo-status-bar": "~1.6.0",
@@ -24,6 +24,14 @@
     "@expo/webpack-config": "^19.0.0",
     "babel-loader": "^8.1.0",
     "babel-plugin-module-resolver": "^5.0.0"
+  },
+  "resolutions": {
+    "minimatch": "^5.1.6",
+    "glob": "^8.1.0",
+    "fast-glob": "^3.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "private": true
 }

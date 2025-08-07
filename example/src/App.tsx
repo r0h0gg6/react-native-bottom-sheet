@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import BottomSheet, { type BottomSheetMethods } from '@devvie/bottom-sheet';
+import BottomSheet, { type BottomSheetMethods } from '@r0h0gg6/bottom-sheet';
 
 
 const SnapPointsExample = () => {

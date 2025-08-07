@@ -97,7 +97,7 @@ interface BottomSheetProps {
    * @default "slide" | ANIMATIONS.SLIDE
    * @example
    * ```tsx
-   * import BottomSheet, {ANIMATIONS} from '@devvie/bottom-sheet';
+   * import BottomSheet, {ANIMATIONS} from '@r0h0gg6/bottom-sheet';
    * ...
    * <BottomSheet animationType={ANIMATIONS.SLIDE}>
    * ...
