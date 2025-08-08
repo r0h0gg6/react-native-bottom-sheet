@@ -3,7 +3,7 @@
  * Converts percentage values to pixel values based on container height.
  * @param snapPoint The snap point to normalize (number or percentage string)
  * @param containerHeight The container height to calculate percentage against
- * @returns The normalized snap point position in pixels from the top
+ * @returns The normalized snap point as actual height in pixels
  */
 export const normalizeSnapPoint = (
     snapPoint: number | string,
@@ -17,9 +17,9 @@ export const normalizeSnapPoint = (
         normalizedSnapPoint = (percentage * containerHeight) / 100;
     }
 
-    // Convert height to position from top
-    // If snapPoint is 200px height, position from top should be containerHeight - 200
-    return Math.max(0, containerHeight - normalizedSnapPoint);
+    // Return the actual height, not position from top
+    // The BottomSheet component expects height values, not position values
+    return Math.max(0, normalizedSnapPoint);
 };
 
 /**
@@ -53,7 +53,7 @@ export const validateSnapPoint = (snapPoint: number | string): void => {
  * Normalizes an array of snap points and sorts them
  * @param snapPoints Array of snap points to normalize
  * @param containerHeight Container height for percentage calculations
- * @returns Array of normalized snap points sorted from highest to lowest position
+ * @returns Array of normalized snap points sorted from lowest to highest position (top to bottom)
  */
 export const normalizeSnapPoints = (
     snapPoints: (number | string)[],
@@ -67,6 +67,49 @@ export const normalizeSnapPoints = (
         normalizeSnapPoint(snapPoint, containerHeight)
     );
 
-    // Sort from highest position to lowest (top to bottom)
-    return normalized.sort((a, b) => a - b);
+    // Sort from highest height to lowest height (tallest sheet to shortest sheet)
+    // This maintains the expected index mapping where higher indices = taller sheets
+    return normalized.sort((a, b) => b - a);
+};
+
+/**
+ * Creates index mapping between original snap points and sorted snap points
+ * @param snapPoints Original snap points array
+ * @param containerHeight Container height for percentage calculations
+ * @returns Mapping functions and normalized arrays
+ */
+export const createSnapPointMapping = (
+    snapPoints: (number | string)[],
+    containerHeight: number
+) => {
+    // Create normalized values with original indices
+    const normalizedWithIndices = snapPoints.map((snapPoint, originalIndex) => ({
+        originalIndex,
+        normalizedValue: normalizeSnapPoint(snapPoint, containerHeight),
+        originalSnapPoint: snapPoint
+    }));
+
+    // Sort by normalized value (lowest position to highest - top to bottom)
+    const sorted = [...normalizedWithIndices].sort((a, b) => a.normalizedValue - b.normalizedValue);
+
+    // Create the sorted normalized array that the component expects
+    const sortedNormalizedSnapPoints = sorted.map(item => item.normalizedValue);
+
+    // Create mapping functions
+    const originalToSortedIndex = (originalIndex: number): number => {
+        const item = normalizedWithIndices[originalIndex];
+        return sorted.findIndex(sortedItem => sortedItem.originalIndex === originalIndex);
+    };
+
+    const sortedToOriginalIndex = (sortedIndex: number): number => {
+        return sorted[sortedIndex]?.originalIndex ?? -1;
+    };
+
+    return {
+        sortedNormalizedSnapPoints,
+        originalToSortedIndex,
+        sortedToOriginalIndex,
+        normalizedWithIndices,
+        sorted
+    };
 };

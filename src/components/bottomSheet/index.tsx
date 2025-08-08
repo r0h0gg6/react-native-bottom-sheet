@@ -30,7 +30,7 @@ import Container from '../container';
 import normalizeHeight from '../../utils/normalizeHeight';
 import convertHeight from '../../utils/convertHeight';
 
-import { normalizeSnapPoints } from '../../utils/normalizeSnapPoint';
+import { normalizeSnapPoints, createSnapPointMapping } from '../../utils/normalizeSnapPoint';
 import { snapPoint } from '../../utils/snapPoint';
 import useHandleKeyboardEvents from '../../hooks/useHandleKeyboardEvents';
 import useAnimatedValue from '../../hooks/useAnimatedValue';
@@ -92,47 +92,49 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
     useImperativeHandle(ref, () => ({
       open() {
         if (snapPoints && snapPoints.length > 0) {
-          snapToIndex(snapPoints.length - 1); // Snap to highest point
+          // Find the highest snap point in the original array
+          if (snapPointMapping) {
+            const highestSortedIndex = finalSnapPoints.length - 1;
+            const originalIndex = snapPointMapping.sortedToOriginalIndex(highestSortedIndex);
+            snapToIndex(originalIndex, true); // Mark as user interaction
+          }
         } else {
           openBottomSheet();
         }
       },
       close() {
         if (snapPoints && snapPoints.length > 0) {
-          snapToIndex(-1); // Close
+          snapToIndex(-1, true); // Close
         } else {
           closeBottomSheet();
         }
       },
       snapToIndex(targetIndex: number) {
-        if (!snapPoints || snapPoints.length === 0) return;
-
-        if (targetIndex === -1) {
-          // Close the sheet
-          closeBottomSheet();
-          return;
-        }
-
-        if (targetIndex < 0 || targetIndex >= snapPoints.length) {
-          console.warn(`snapToIndex: index ${targetIndex} is out of range`);
-          return;
-        }
-
-        snapToIndex(targetIndex);
+        snapToIndex(targetIndex, true); // Mark as user interaction
       },
       snapToPosition(position: number) {
         animateToPosition(position);
       },
       expand() {
         if (snapPoints && snapPoints.length > 0) {
-          snapToIndex(snapPoints.length - 1);
+          // Find the highest snap point in the original array
+          if (snapPointMapping) {
+            const highestSortedIndex = finalSnapPoints.length - 1;
+            const originalIndex = snapPointMapping.sortedToOriginalIndex(highestSortedIndex);
+            snapToIndex(originalIndex, true); // Mark as user interaction
+          }
         } else {
           openBottomSheet();
         }
       },
       collapse() {
         if (snapPoints && snapPoints.length > 0) {
-          snapToIndex(0);
+          // Find the lowest snap point in the original array  
+          if (snapPointMapping) {
+            const lowestSortedIndex = 0;
+            const originalIndex = snapPointMapping.sortedToOriginalIndex(lowestSortedIndex);
+            snapToIndex(originalIndex, true); // Mark as user interaction
+          }
         } else {
           closeBottomSheet();
         }
@@ -148,11 +150,12 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
     const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
     const [sheetOpen, setSheetOpen] = useState(false);
 
-    // Snap points state
+    // Snap points state with mapping
     const [currentSnapIndex, setCurrentSnapIndex] = useState(
       snapPoints && index !== undefined ? index : -1
     );
     const [_normalizedSnapPoints, setNormalizedSnapPoints] = useState<number[]>([]);
+    const [snapPointMapping, setSnapPointMapping] = useState<ReturnType<typeof createSnapPointMapping> | null>(null);
 
     // animated properties
     const _animatedContainerHeight = useAnimatedValue(0);
@@ -174,11 +177,14 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
       [contentContainerStyle]
     );
 
-    // Convert snap points to normalized positions
+    // Convert snap points to normalized positions with mapping
     const finalSnapPoints = useMemo(() => {
       if (snapPoints && snapPoints.length > 0) {
-        return normalizeSnapPoints(snapPoints, containerHeight);
+        const mapping = createSnapPointMapping(snapPoints, containerHeight);
+        setSnapPointMapping(mapping);
+        return mapping.sortedNormalizedSnapPoints;
       }
+      setSnapPointMapping(null);
       return [];
     }, [snapPoints, containerHeight]);
 
@@ -192,12 +198,17 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
       Animators.animateHeight(position, duration || openDuration).start();
     }, [openDuration]);
 
-    // Helper function to snap to a specific index
-    const snapToIndex = useCallback((targetIndex: number) => {
+    // Helper function to snap to a specific index (user's original index)
+    const snapToIndex = useCallback((targetIndex: number, isUserInteraction = false) => {
       if (!snapPoints || snapPoints.length === 0) return;
 
+      // Mark that user has interacted if this is a user-triggered snap
+      if (isUserInteraction) {
+        setHasUserInteracted(true);
+      }
+
       if (targetIndex === -1) {
-        // Close the sheet - we'll define this logic inline to avoid dependency issues
+        // Close the sheet
         setCurrentSnapIndex(-1);
         setSheetOpen(false);
 
@@ -217,10 +228,10 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
       }
 
       const targetPosition = finalSnapPoints[targetIndex];
+      
       if (targetPosition !== undefined) {
         setCurrentSnapIndex(targetIndex);
         setSheetOpen(true);
-
 
         // Animate to the target position
         Animators.animateHeight(targetPosition, openDuration / 2).start();
@@ -231,7 +242,9 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
           onChange(targetIndex, targetPosition);
         }
       }
-    }, [snapPoints, finalSnapPoints, onChange, openDuration, closeDuration]);    // Animation utility
+    }, [snapPoints, finalSnapPoints, onChange, openDuration, closeDuration]);
+
+    // Animation utility
     const Animators = useMemo(
       () => ({
         _slideEasingFn(value: number) {
@@ -400,12 +413,20 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
           }
         },
         onPanResponderRelease(_, gestureState) {
-
           // Handle snap points
           if (snapPoints && finalSnapPoints.length > 0) {
+            setHasUserInteracted(true); // Mark as user interaction
             const currentHeight = finalSnapPoints[currentSnapIndex] || convertedHeight;
-            const currentPosition = currentHeight - gestureState.dy;
-            const velocity = gestureState.vy;
+            let targetPosition = currentHeight;
+
+            // Calculate new position based on gesture
+            if (gestureState.dy > 0) {
+              // Dragging down - should go to a smaller height (lower snap point)
+              targetPosition = currentHeight - Math.abs(gestureState.dy);
+            } else if (gestureState.dy < 0) {
+              // Dragging up - should go to a larger height (higher snap point)  
+              targetPosition = currentHeight + Math.abs(gestureState.dy);
+            }
 
             // Create snap points array including closed position
             const allSnapPoints = [...finalSnapPoints];
@@ -413,9 +434,20 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
               allSnapPoints.push(0); // Add closed position
             }
 
-            // Find the best snap point
-            const destinationPoint = snapPoint(currentPosition, velocity, allSnapPoints);
+            // Find the best snap point using velocity and position
+            const velocity = -gestureState.vy; // Negative because we want height velocity, not position velocity
+            const destinationPoint = snapPoint(targetPosition, velocity, allSnapPoints);
             const newIndex = finalSnapPoints.indexOf(destinationPoint);
+
+            console.log('Drag release debug:', {
+              gestureState: { dy: gestureState.dy, vy: gestureState.vy },
+              currentHeight,
+              targetPosition,
+              destinationPoint,
+              newIndex,
+              allSnapPoints,
+              finalSnapPoints
+            });
 
             if (destinationPoint === 0 && closeOnDragDown) {
               // Close the sheet
@@ -586,16 +618,31 @@ const BottomSheet = forwardRef<BottomSheetMethods, BottomSheetProps>(
       _animatedHeight,
     ]);
 
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
     /**
-     * Handle initial snap point positioning
+     * Handle initial snap point positioning - but not after user interactions
      */
     useEffect(() => {
-      if (snapPoints && snapPoints.length > 0 && index !== undefined && index >= 0) {
+      if (!hasUserInteracted && snapPoints && snapPoints.length > 0 && index !== undefined && index >= 0) {
+        if (index < snapPoints.length) {
+          // Use a small delay to ensure the component is fully mounted
+          setTimeout(() => {
+            snapToIndex(index, false); // Not a user interaction
+          }, 100);
+        }
+      }
+    }, [snapPoints, index, containerHeight, hasUserInteracted]);
+
+    // Separate effect to handle when snap points change but not override current position
+    useEffect(() => {
+      // Only update if the sheet is not currently open/positioned
+      if (!sheetOpen && snapPoints && snapPoints.length > 0 && index !== undefined && index >= 0) {
         if (index < snapPoints.length) {
           snapToIndex(index);
         }
       }
-    }, [snapPoints, index, containerHeight]);
+    }, [snapPoints, containerHeight]); // Don't include 'index' to avoid resetting position
 
     /**
      * Handles auto adjusting container view height and clamping
