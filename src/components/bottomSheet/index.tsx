@@ -30,7 +30,7 @@ import Container from '../container';
 import normalizeHeight from '../../utils/normalizeHeight';
 import convertHeight from '../../utils/convertHeight';
 
-import { normalizeSnapPoints, createSnapPointMapping } from '../../utils/normalizeSnapPoint';
+import { createSnapPointMapping } from '../../utils/normalizeSnapPoint';
 import { snapPoint } from '../../utils/snapPoint';
 import useHandleKeyboardEvents from '../../hooks/useHandleKeyboardEvents';
 import useAnimatedValue from '../../hooks/useAnimatedValue';

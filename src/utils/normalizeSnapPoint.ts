@@ -97,7 +97,6 @@ export const createSnapPointMapping = (
 
     // Create mapping functions
     const originalToSortedIndex = (originalIndex: number): number => {
-        const item = normalizedWithIndices[originalIndex];
         return sorted.findIndex(sortedItem => sortedItem.originalIndex === originalIndex);
     };
 
