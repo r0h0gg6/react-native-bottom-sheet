@@ -4,18 +4,19 @@ import BottomSheet, { type BottomSheetMethods } from '@r0h0gg6/bottom-sheet';
 
 const SnapPointExample = () => {
   const bottomSheetRef = useRef<BottomSheetMethods>(null);
-  // bottomSheetRef = React.createRef();
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   const [showMap, setShowMap] = useState(false);
   const [prevIndex, setPrevIndex] = useState(null);
 
   const snapPoints = ['50%', '90%']; // Back to percentage-only
+  const activeSnapPoints = hasUserInteracted ? snapPoints : undefined;
 
   // Add debugging for snap points
   useEffect(() => {
     console.log('Snap points:', snapPoints);
     console.log('Starting index:', 1);
-    
+
     // Add a small delay to see the final snap points after normalization
     setTimeout(() => {
       console.log('Final normalized snap points should be calculated now');
@@ -43,7 +44,7 @@ const SnapPointExample = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Snap Points Example</Text>
-      
+
       {/* Add debug info */}
       <Text style={styles.debugText}>
         Snap Points: {JSON.stringify(snapPoints)}
@@ -62,27 +63,54 @@ const SnapPointExample = () => {
 
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={snapPoints}
+        snapPoints={activeSnapPoints}
         index={1} // Should now correctly start at 90%
         onChange={handleChange}
         modal={false}
         closeOnDragDown={false}
         closeOnBackdropPress={false}
-      // height={'75%'}
+        onAnimate={() => {
+          if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+          }
+        }}
       >
-        <View style={styles.content}>
-          <Text style={styles.contentTitle}>Bottom Sheet Content</Text>
-          <Text>
-            {showMap ? 'Map is visible (90% height)' : 'Map is hidden (50% height)'}
-          </Text>
-          <Text style={styles.contentText}>
-            This bottom sheet supports snap points! You can drag it to different positions
-            or use the buttons above to snap to specific points.
-          </Text>
-          <Text style={styles.contentText}>
-            The snap points are: 50% of screen height (index 0), and 90% of screen height (index 1).
-          </Text>
-        </View>
+        <ScrollView showsVerticalScrollIndicator={true}>
+          <View style={styles.content}>
+            <Text style={styles.contentTitle}>Bottom Sheet Content</Text>
+            <Text>
+              {showMap ? 'Map is visible (90% height)' : 'Map is hidden (50% height)'}
+            </Text>
+            <Text style={styles.contentText}>
+              This bottom sheet supports snap points! You can drag it to different positions
+              or use the buttons above to snap to specific points.
+            </Text>
+            <Text style={styles.contentText}>
+              The snap points are: 50% of screen height (index 0), and 90% of screen height (index 1).
+            </Text>
+            <Text style={styles.contentText}>
+              Scroll through this content to test the scrolling functionality.
+            </Text>
+            <Text style={styles.contentText}>
+              Initially, the sheet uses a fixed height which allows ScrollView to work perfectly.
+            </Text>
+            <Text style={styles.contentText}>
+              After you interact with the buttons or drag handle, snap points become active.
+            </Text>
+            <Text style={styles.contentText}>
+              This approach prevents gesture conflicts during initialization.
+            </Text>
+            <Text style={styles.contentText}>
+              More content here to demonstrate scrolling...
+            </Text>
+            <Text style={styles.contentText}>
+              Keep scrolling to see more content below.
+            </Text>
+            <Text style={styles.contentText}>
+              This is the last piece of content to scroll through.
+            </Text>
+          </View>
+        </ScrollView>
       </BottomSheet>
     </View>
   );
